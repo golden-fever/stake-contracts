@@ -65,7 +65,7 @@ contract Lottery is Permissionable {
     uint withdrawalAmount;
     
     uint byNextDistributed;
-    uint lastPriceByNextDistribute;
+    uint nextDistributePrice;
   }
 
   // roundNumber => Round  
@@ -210,49 +210,60 @@ contract Lottery is Permissionable {
   }
 
   function distributeByNext(uint _roundNumber, uint _ticketNumber, uint _distributeForCount) public {
-    require(_ticketNumber != 0 && _distributeForCount != 0, "ticketNumber and distributeForCount can't be equal 0");
+    require(_distributeForCount != 0, "distributeForCount can't be equal 0");
     LotteryRound storage _round = rounds[_roundNumber];
     require(_round.ticket[_ticketNumber].paidAmount != 0, "There is no payment for this member");
-    require(_round.ticket[_ticketNumber].byNextDistributed != _ticketNumber, "Member already distributed for previous");
-
-    uint i = _ticketNumber + _round.ticket[_ticketNumber].byNextDistributed + 1;
-    require(i < _round.membersTickets.length, "End of round members reached");
-    require(i + _distributeForCount <= _round.membersTickets.length, "Too much distributeForCount");
     
-    if(_round.ticket[_ticketNumber].lastPriceByNextDistribute == 0) {
-      _round.ticket[_ticketNumber].lastPriceByNextDistribute = _round.initialTicketPrice;
+    if(_round.ticket[_ticketNumber].nextDistributePrice == 0) {
+      uint _length = _round.ticketsCountsWithNewPrice.length;
+
+      uint newPrice = _round.initialTicketPrice;
+      for (uint256 i = 0; i < _length; i++) {
+        if(_ticketNumber >= _round.ticketsCountsWithNewPrice[i]) {
+          newPrice = _round.newPriceOnTicketsCount[_round.ticketsCountsWithNewPrice[i]];
+        }
+      }
+      _round.ticket[_ticketNumber].nextDistributePrice = newPrice;
     }
+    
+    if(_round.ticket[_ticketNumber].byNextDistributed == 0) {
+      _round.ticket[_ticketNumber].byNextDistributed = _ticketNumber;
+    }
+    
+    uint i = _round.ticket[_ticketNumber].byNextDistributed;
+    require(i < _round.membersTickets.length, "End of round members reached");
+    require(i + _distributeForCount < _round.membersTickets.length, "Too much distributeForCount");
 
     uint addWon = 0;
-    uint addWonMultiplier = 0;
-    
-    while (i < _distributeForCount) {
-      if (_round.newPriceOnTicketsCount[i] != 0) {
-        addWon += (addWonMultiplier * _round.ticket[_ticketNumber].lastPriceByNextDistribute) / 1 ether;
-        _round.ticket[_ticketNumber].lastPriceByNextDistribute = _round.newPriceOnTicketsCount[i];
-        addWonMultiplier = 0;
-      }
-      
-      addWonMultiplier += 1 ether / (i * 2);
+    uint addWonDivider = 0;
+    while (i < _round.ticket[_ticketNumber].byNextDistributed + _distributeForCount) {
       i++;
+      
+      if (_round.newPriceOnTicketsCount[i] != 0) {
+        addWon += (addWonDivider * _round.ticket[_ticketNumber].nextDistributePrice) / 1 ether;
+        _round.ticket[_ticketNumber].nextDistributePrice = _round.newPriceOnTicketsCount[i];
+        addWonDivider = 0;
+      }
+      addWonDivider += 1 ether / (i * 2);
     }
-
-    addWon += addWonMultiplier * _round.ticket[_ticketNumber].lastPriceByNextDistribute;
-    _round.ticket[_ticketNumber].wonAmount += addWon;
-
+    
+    _round.ticket[_ticketNumber].wonAmount += addWon + ((addWonDivider * _round.ticket[_ticketNumber].nextDistributePrice) / 1 ether);
     _round.ticket[_ticketNumber].byNextDistributed = i;
   }
 
+  event LastWinnerDistribute(uint roundNumber, uint ticketNumber, uint amount);
+  
   function distributeForLastWinners(uint _roundNumber) public {
     require(_roundNumber < currentRoundNumber, "roundNumber should be less then currentRoundNumber");
     LotteryRound storage _round = rounds[_roundNumber];
     require(_round.distributedForLastWinners == 0, "already distributed for last winners");
 
-    uint _amountPerMember = (_round.totalPaid / 2) / lastWinnersCount;
+    uint _amountPerMember = _round.totalPaid / (2 * lastWinnersCount);
 
     for (uint256 i; i < lastWinnersCount; i++) {
-      uint _winnerMemberNumber = _round.membersTickets.length - i;
-      _round.ticket[_winnerMemberNumber].wonAmount += _amountPerMember;
+      uint _winnerTicketNumber = _round.membersTickets.length - i;
+      _round.ticket[_winnerTicketNumber].wonAmount += _amountPerMember;
+      emit LastWinnerDistribute(_roundNumber, _winnerTicketNumber, _amountPerMember);
     }
 
     _round.distributedForLastWinners = lastWinnersCount;
@@ -345,6 +356,7 @@ contract Lottery is Permissionable {
     uint ticketsCount,
     uint totalPaid,
     uint totalFee,
+    uint initialTicketPrice,
     uint ticketPrice,
     uint distributedForLastWinners
   ) {
@@ -355,6 +367,7 @@ contract Lottery is Permissionable {
       _round.membersTickets.length,
       _round.totalPaid,
       _round.totalFee,
+      _round.initialTicketPrice,
       _round.ticketPrice,
       _round.distributedForLastWinners
     );
@@ -373,7 +386,7 @@ contract Lottery is Permissionable {
 
   function getTicketRoundInfo(uint _roundNumber, uint _ticketNumber) view external returns (
     address member,
-    uint byNextDistributedCount,
+    uint byNextDistributed,
     uint paidAt,
     uint paidAmount,
     uint wonAmount,
@@ -442,6 +455,20 @@ contract Lottery is Permissionable {
     newTicketsPrices = new uint256[](_length);
     for (uint256 i = 0; i < _length; i++) {
       newTicketsPrices[i] = newPriceOnTicketsCount[ticketsNumbers[i]];
+    }
+  }
+
+  function getRoundNewPriceOnTicketNumbersInfo(uint _roundNumber) view external returns (
+    uint[] memory ticketsNumbers,
+    uint[] memory newTicketsPrices
+  ) {
+    LotteryRound storage _round = rounds[_roundNumber];
+    ticketsNumbers = _round.ticketsCountsWithNewPrice;
+    uint _length = _round.ticketsCountsWithNewPrice.length;
+
+    newTicketsPrices = new uint256[](_length);
+    for (uint256 i = 0; i < _length; i++) {
+      newTicketsPrices[i] = _round.newPriceOnTicketsCount[ticketsNumbers[i]];
     }
   }
 }
