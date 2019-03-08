@@ -397,13 +397,8 @@ contract Lottery is Permissionable {
     );
   }
 
-  function getMemberRoundTickets(uint _roundNumber, address _member) view external returns (
-    uint[] memory tickets
-  ) {
-    LotteryRound storage _round = rounds[_roundNumber];
-    return (
-      _round.ticketsOfMember[_member]
-    );
+  function getMemberRoundTickets(uint _roundNumber, address _member) view external returns (uint[] memory) {
+    return rounds[_roundNumber].ticketsOfMember[_member];
   }
 
   function getNewPriceOnTicketNumbersInfo() view external returns (
