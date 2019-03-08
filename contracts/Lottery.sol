@@ -398,23 +398,11 @@ contract Lottery is Permissionable {
   }
 
   function getMemberRoundTickets(uint _roundNumber, address _member) view external returns (
-    uint[] memory tickets,
-    uint[] memory paid,
-    uint[] memory wins
+    uint[] memory tickets
   ) {
     LotteryRound storage _round = rounds[_roundNumber];
-    paid = new uint256[](_round.ticketsOfMember[_member].length);
-    wins = new uint256[](_round.ticketsOfMember[_member].length);
-
-    for (uint256 i = 0; i < _round.ticketsOfMember[_member].length; i++) {
-      paid[i] = _round.ticket[_round.ticketsOfMember[_member][i]].paidAmount;
-      wins[i] = _round.ticket[_round.ticketsOfMember[_member][i]].wonAmount;
-    }
     return (
-      _round.ticketsOfMember[_member],
-      // paid array without fee
-      paid,
-      wins
+      _round.ticketsOfMember[_member]
     );
   }
 
