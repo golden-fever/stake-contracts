@@ -276,7 +276,7 @@ contract Lottery is Permissionable {
     uint _currentRoundNumber,
     CurrencyType _currencyType,
     address _currencyAddress,
-    uint _initialPayment,
+    uint _initialTicketPrice,
     uint _lastWinnersCount,
     uint _feePercent
   ) {
