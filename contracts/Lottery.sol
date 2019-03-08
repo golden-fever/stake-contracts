@@ -349,7 +349,7 @@ contract Lottery is Permissionable {
     uint wonAmount,
     uint withdrawalAmount
   ) {
-    LotteryRound storage _ticket = rounds[_roundNumber].ticket[_ticketNumber];
+    LotteryTicket storage _ticket = rounds[_roundNumber].ticket[_ticketNumber];
     return (
       rounds[_roundNumber].membersTickets[_ticketNumber],
       _ticket.forPreviousDistributed,
