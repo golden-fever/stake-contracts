@@ -425,18 +425,21 @@ contract Lottery is Permissionable {
 
   function getMemberAfterRoundInfo(uint _roundNumber, address _member) view external returns (
     uint ticketsCount,
-    uint notDistributedForPreviousCount,
+    uint notDistributedByNext,
     uint withdrawalSum
   ) {
     LotteryRound storage _round = rounds[_roundNumber];
     for (uint256 i = 0; i < _round.ticketsOfMember[_member].length; i++) {
-      //TODO: byNextDistributed
-      notDistributedForPreviousCount += (_round.ticketsOfMember[_member][i] - _round.ticket[_round.ticketsOfMember[_member][i]].byNextDistributed);
+      uint _distributed = _round.ticket[_round.ticketsOfMember[_member][i]].byNextDistributed;
+      if(_distributed == 0) {
+        _distributed = _round.ticketsOfMember[_member][i];
+      }
+      notDistributedByNext += _round.membersTickets.length - 1 - _distributed;
       withdrawalSum += _round.ticket[_round.ticketsOfMember[_member][i]].withdrawalAmount;
     }
     return (
       _round.ticketsOfMember[_member].length,
-      notDistributedForPreviousCount,
+      notDistributedByNext,
       withdrawalSum
     );
   }
