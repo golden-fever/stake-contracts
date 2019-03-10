@@ -52,6 +52,7 @@ contract Lottery is Permissionable {
 
     uint totalPaid;
     uint totalFee;
+    uint lastWinnersCount;
     uint distributedForLastWinners;
   
     mapping(uint => uint) newPriceOnTicketsCount;
@@ -142,6 +143,7 @@ contract Lottery is Permissionable {
     rounds[currentRoundNumber].ticketPrice = initialTicketPrice;
     rounds[currentRoundNumber].duration = roundDuration;
     rounds[currentRoundNumber].startedAt = block.timestamp;
+    rounds[currentRoundNumber].lastWinnersCount = lastWinnersCount;
 
     rounds[currentRoundNumber].ticketsCountsWithNewPrice = ticketsCountsWithNewPrice.elements();
     uint _length = ticketsCountsWithNewPrice.size();
@@ -258,15 +260,16 @@ contract Lottery is Permissionable {
     LotteryRound storage _round = rounds[_roundNumber];
     require(_round.distributedForLastWinners == 0, "already distributed for last winners");
 
-    uint _amountPerMember = _round.totalPaid / (2 * lastWinnersCount);
+    uint _actualWinnersCount = _round.lastWinnersCount > _round.membersTickets.length ? _round.membersTickets.length : _round.lastWinnersCount;
+    uint _amountPerMember = _round.totalPaid / (2 * _actualWinnersCount);
 
-    for (uint256 i; i < lastWinnersCount; i++) {
+    for (uint256 i; i < _actualWinnersCount; i++) {
       uint _winnerTicketNumber = _round.membersTickets.length - i;
       _round.ticket[_winnerTicketNumber].wonAmount += _amountPerMember;
       emit LastWinnerDistribute(_roundNumber, _winnerTicketNumber, _amountPerMember);
     }
 
-    _round.distributedForLastWinners = lastWinnersCount;
+    _round.distributedForLastWinners = _actualWinnersCount;
   }
 
   function claimWin(uint _roundNumber, uint _ticketNumber) public {
@@ -376,10 +379,11 @@ contract Lottery is Permissionable {
   function getRoundLastWinnersTickets(uint _roundNumber) view external returns (uint[] memory) {
     LotteryRound storage _round = rounds[_roundNumber];
 
-    uint[] memory _list = new uint[](_round.distributedForLastWinners);
     uint _ticketsCount = _round.membersTickets.length;
-    for (uint i = 0; i < _round.distributedForLastWinners; i++) {
-      _list[i] = _ticketsCount - _round.distributedForLastWinners + i + 1;
+    uint _actualWinnersCount = _round.lastWinnersCount > _ticketsCount ? _ticketsCount : _round.lastWinnersCount;
+    uint[] memory _list = new uint[](_actualWinnersCount);
+    for (uint i = 0; i < _actualWinnersCount; i++) {
+      _list[i] = _ticketsCount - _actualWinnersCount + i + 1;
     }
     return _list;
   }
