@@ -263,8 +263,8 @@ contract Lottery is Permissionable {
     uint _actualWinnersCount = _round.lastWinnersCount > _round.membersTickets.length ? _round.membersTickets.length : _round.lastWinnersCount;
     uint _amountPerMember = _round.totalPaid / (2 * _actualWinnersCount);
 
-    for (uint256 i; i < _actualWinnersCount; i++) {
-      uint _winnerTicketNumber = _round.membersTickets.length - i;
+    for (uint256 i = 0; i < _actualWinnersCount; i++) {
+      uint _winnerTicketNumber = _round.membersTickets.length - i - 1;
       _round.ticket[_winnerTicketNumber].wonAmount += _amountPerMember;
       emit LastWinnerDistribute(_roundNumber, _winnerTicketNumber, _amountPerMember);
     }
@@ -383,7 +383,7 @@ contract Lottery is Permissionable {
     uint _actualWinnersCount = _round.lastWinnersCount > _ticketsCount ? _ticketsCount : _round.lastWinnersCount;
     uint[] memory _list = new uint[](_actualWinnersCount);
     for (uint i = 0; i < _actualWinnersCount; i++) {
-      _list[i] = _ticketsCount - _actualWinnersCount + i + 1;
+      _list[i] = _ticketsCount - i - 1;
     }
     return _list;
   }
