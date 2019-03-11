@@ -359,15 +359,16 @@ contract Lottery is Permissionable {
   }
 
   function getRoundInfo(uint _roundNumber) view external returns (
-    uint duration,
-    uint startedAt,
-    uint ticketsCount,
-    uint totalPaid,
-    uint totalFee,
-    uint initialTicketPrice,
-    uint ticketPrice,
-    uint memberSubtractRoundMultiplier,
-    uint distributedForLastWinners
+    uint _duration,
+    uint _startedAt,
+    uint _ticketsCount,
+    uint _totalPaid,
+    uint _totalFee,
+    uint _initialTicketPrice,
+    uint _ticketPrice,
+    uint _memberSubtractRoundMultiplier,
+    uint _distributedForLastWinners,
+    uint _lastWinnersCount
   ) {
     LotteryRound storage _round = rounds[_roundNumber];
     return (
@@ -379,7 +380,8 @@ contract Lottery is Permissionable {
       _round.initialTicketPrice,
       _round.ticketPrice,
       _round.memberSubtractRoundMultiplier,
-      _round.distributedForLastWinners
+      _round.distributedForLastWinners,
+      _round.lastWinnersCount
     );
   }
 
