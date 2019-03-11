@@ -54,7 +54,8 @@ contract Lottery is Permissionable {
     uint totalFee;
     uint lastWinnersCount;
     uint distributedForLastWinners;
-  
+
+    uint memberSubtractRoundMultiplier;
     mapping(uint => uint) newPriceOnTicketsCount;
     uint[] ticketsCountsWithNewPrice;
   }
@@ -144,6 +145,7 @@ contract Lottery is Permissionable {
     rounds[currentRoundNumber].duration = roundDuration;
     rounds[currentRoundNumber].startedAt = block.timestamp;
     rounds[currentRoundNumber].lastWinnersCount = lastWinnersCount;
+    rounds[currentRoundNumber].memberSubtractRoundMultiplier = memberSubtractRoundMultiplier;
 
     rounds[currentRoundNumber].ticketsCountsWithNewPrice = ticketsCountsWithNewPrice.elements();
     uint _length = ticketsCountsWithNewPrice.size();
@@ -185,7 +187,7 @@ contract Lottery is Permissionable {
     LotteryRound storage _round = rounds[currentRoundNumber];
 
     _round.membersTickets.push(msg.sender);
-    _round.duration = _round.duration - getUntilCurrentRoundEnd() + roundDuration - memberSubtractRoundMultiplier * _round.membersTickets.length;
+    _round.duration = _round.duration - getUntilCurrentRoundEnd() + roundDuration - _round.memberSubtractRoundMultiplier * _round.membersTickets.length;
 
     uint _ticketNumber = _round.membersTickets.length - 1;
     _round.ticketsOfMember[msg.sender].push(_ticketNumber);
@@ -364,6 +366,7 @@ contract Lottery is Permissionable {
     uint totalFee,
     uint initialTicketPrice,
     uint ticketPrice,
+    uint memberSubtractRoundMultiplier,
     uint distributedForLastWinners
   ) {
     LotteryRound storage _round = rounds[_roundNumber];
@@ -375,6 +378,7 @@ contract Lottery is Permissionable {
       _round.totalFee,
       _round.initialTicketPrice,
       _round.ticketPrice,
+      _round.memberSubtractRoundMultiplier,
       _round.distributedForLastWinners
     );
   }
