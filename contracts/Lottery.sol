@@ -227,16 +227,19 @@ contract Lottery is Permissionable {
       }
       _round.ticket[_ticketNumber].nextDistributePrice = newPrice;
     }
-    
+
+    uint addWon = 0;
     if(_round.ticket[_ticketNumber].byNextDistributed == 0) {
       _round.ticket[_ticketNumber].byNextDistributed = _ticketNumber;
+      if(_ticketNumber == 0) {
+        addWon += _round.ticket[_ticketNumber].paidAmount / 2;
+      }
     }
     
     uint i = _round.ticket[_ticketNumber].byNextDistributed;
     require(i < _round.membersTickets.length, "End of round members reached");
     require(i + _distributeForCount < _round.membersTickets.length, "Too much distributeForCount");
 
-    uint addWon = 0;
     uint addWonDivider = 0;
     while (i < _round.ticket[_ticketNumber].byNextDistributed + _distributeForCount) {
       i++;
