@@ -77,6 +77,11 @@ contract Lottery is Permissionable {
   mapping(uint => uint) internal newPriceOnTicketsCount;
   ArraySet.Uint256Set ticketsCountsWithNewPrice;
 
+  event RoundStart(uint indexed roundNumber, uint initialTicketPrice, uint duration, uint lastWinnersCount, uint memberSubtractRoundMultiplier);
+  event RoundTicketPriceChange(uint indexed roundNumber, uint oldTicketPrice, uint newTicketPrice);
+  event TicketBuy(uint indexed roundNumber, uint ticketNumber, uint ticketPrice, address indexed member);
+  event LastWinnerDistribute(uint indexed roundNumber, uint ticketNumber, uint amount);
+  
   constructor(CurrencyType _currencyType, address _currencyAddress, uint _roundDuration, uint _initialPayment, uint _lastWinnersCount, uint _memberSubtractRoundMultiplier) public {
     currencyType = _currencyType;
     currencyAddress = _currencyAddress;
@@ -154,6 +159,8 @@ contract Lottery is Permissionable {
       uint ticketsCount = rounds[currentRoundNumber].ticketsCountsWithNewPrice[i];
       rounds[currentRoundNumber].newPriceOnTicketsCount[ticketsCount] = newPriceOnTicketsCount[ticketsCount];
     }
+    
+    emit RoundStart(currentRoundNumber, initialTicketPrice, roundDuration, lastWinnersCount, memberSubtractRoundMultiplier);
   }
 
   function start() public onlyActiveManager {
@@ -177,8 +184,6 @@ contract Lottery is Permissionable {
     }
   }
 
-  event LogNumber(string s, uint n);
-
   function buyTicket() public payable {
     require(active, "Not active");
 
@@ -193,6 +198,7 @@ contract Lottery is Permissionable {
     _round.ticketsOfMember[msg.sender].push(_ticketNumber);
 
     if (newPriceOnTicketsCount[_round.membersTickets.length] > 0) {
+      emit RoundTicketPriceChange(currentRoundNumber, _round.ticketPrice, newPriceOnTicketsCount[_round.membersTickets.length]);
       _round.ticketPrice = newPriceOnTicketsCount[_round.membersTickets.length];
     }
 
@@ -211,6 +217,8 @@ contract Lottery is Permissionable {
     _round.totalPaid += _round.ticket[_ticketNumber].paidAmount;
     _round.totalFee += _feeAmount;
     feeForWithdraw += _feeAmount;
+    
+    emit TicketBuy(currentRoundNumber, _ticketNumber, _round.ticketPrice, msg.sender);
   }
 
   function distributeByNext(uint _roundNumber, uint _ticketNumber, uint _distributeForCount) public {
@@ -257,8 +265,6 @@ contract Lottery is Permissionable {
     _round.ticket[_ticketNumber].wonAmount += addWon + ((addWonDivider * _round.ticket[_ticketNumber].nextDistributePrice) / 1 ether);
     _round.ticket[_ticketNumber].byNextDistributed = i;
   }
-
-  event LastWinnerDistribute(uint roundNumber, uint ticketNumber, uint amount);
   
   function distributeForLastWinners(uint _roundNumber) public {
     require(_roundNumber < currentRoundNumber, "roundNumber should be less then currentRoundNumber");
